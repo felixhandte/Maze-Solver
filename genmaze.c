@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 		printf("Usage: ./genmaze OUTPUT_FILE ALGORITHM WIDTH HEIGHT [RANDOMNESS]\n"
 		       "\n"
 		       "ALGORITHM: rand OR dfs\n"
-		       "RANDOMNESS: odds of adding a(n extra, for dfs) connection, out of 256\n");
+		       "RANDOMNESS: odds of adding a(n extra, for dfs) connection, out of 256\n\n");
 		return 0;
 	}
 	if(!strcmp(argv[1], "-")){

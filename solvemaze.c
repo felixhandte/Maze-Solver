@@ -1,5 +1,6 @@
 /******************************************************************************
- * solvemaze.c                                                                *
+ *                                                                            *
+ *     solvemaze.c                                                            *
  *                                                                            *
  * A C program to solve a 2D maze using the A* Search Algorithm.              *
  *                                                                            *
@@ -17,12 +18,18 @@
  *                                                                            *
  ******************************************************************************/
 
+// Enables fancy terminal features (maze coloring, tty detection, ioctl).
+#define FANCY_TERM
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef FANCY_TERM
 #include <unistd.h>
 #include <sys/ioctl.h>
+#endif
 
 #ifndef __MACH__
 #include <time.h>
@@ -73,12 +80,12 @@ typedef int h_t;
 
 
 typedef struct _node {
-	h_t   hscore;
-	int   gscore;
-	int   hindex;
-	char  neighbors;
-	char  parent;
-	char  state;
+	h_t  hscore;
+	int  gscore;
+	int  hindex;
+	char neighbors;
+	char state;
+	char parent;
 } node;
 
 unsigned int mx;
@@ -100,10 +107,8 @@ h_t *ohf; // Open node heap of f distance
 int ah;   // Allocated size of heap
 int nh;   // Used size of heap
 
-unsigned long long sc[4] = {0, 0, 0, 0};
+unsigned long long int sc[4] = {0, 0, 0, 0};
 unsigned int hswaps = 0;
-
-#define FANCY_TERM
 
 #ifdef FANCY_TERM
 int isttyi;
@@ -447,7 +452,7 @@ int main(int argc, char *argv[]){
 		#ifdef FANCY_TERM
 		if(isttyo){
 			struct winsize termsize;
-			ioctl(0, TIOCGWINSZ, &termsize);
+			ioctl(fileno(stdout), TIOCGWINSZ, &termsize);
 			termwidth = termsize.ws_col;
 		} else {
 			termwidth = -1;
@@ -455,8 +460,7 @@ int main(int argc, char *argv[]){
 		#else
 		termwidth = 80;
 		#endif
-		fprintf(stderr, "Termwidth: %d\n", termwidth);
-		if(termwidth > 0 && 2 * mx > termwidth){
+		if(termwidth > 0 && 2 * mx >= termwidth){
 			fprintf(stderr, "The maze is too wide to be printed on your terminal.\n"
 			                "  I am therefore eliding the graphical representation.\n");
 		} else {
@@ -505,8 +509,8 @@ void timespec_diff(struct timespec *s, struct timespec *e, struct timespec *o){
 
 int alloc_maze(void){
 	int i;
-	unsigned long long l = (unsigned long long) my * sizeof(node *)
-	                     + (unsigned long long) my * mx * sizeof(node);
+	unsigned long long int l = (unsigned long long int) my * sizeof(node *)
+	                         + (unsigned long long int) my * mx * sizeof(node);
 	if(l > 0xffffffffu && sizeof(size_t) == 4){
 		fprintf(stderr, "Size of malloc (0x%08llx,%08llx or 0d%llu bytes) "
 		                "overflows a 32 bit unsigned int (size_t).\n",
@@ -514,13 +518,13 @@ int alloc_maze(void){
 		return 1;
 	}
 	if(sizeof(node *) == 8){
-		fprintf(stderr, "malloc()'ing 0x%08llx,%08llx (0d%llu) bytes (%d rows x %d columns x %lu bytes per node)...\n",
+		fprintf(stderr, "malloc()'ing 0x%08llx,%08llx (0d%llu) bytes (%d rows x %d columns x %lu bytes per node + %d rows x %lu bytes per row pointer)...\n",
 		                l >> 32, l & 0xffffffffu, l,
-		                my, mx, sizeof(node));
+		                my, mx, sizeof(node), my, sizeof(node *));
 	} else {
-		fprintf(stderr, "malloc()'ing 0x%08llx (0d%llu) bytes (%d rows x %d columns x %lu bytes per node)...\n",
+		fprintf(stderr, "malloc()'ing 0x%08llx (0d%llu) bytes (%d rows x %d columns x %lu bytes per node + %d rows x %lu bytes per row pointer)...\n",
 		                l, l,
-		                my, mx, sizeof(node));
+		                my, mx, sizeof(node), my, sizeof(node *));
 	}
 	#ifndef __MACH__
 	clock_gettime(CLOCK_ID, &t_dimensions);
@@ -636,12 +640,18 @@ void calc_results(int sx, int sy, int ex, int ey){
 			}
 		}
 	}
+	long long int totalnodes = sc[0] + sc[1] + sc[2] + sc[3];
+	int nodecountlen = 1;
+	while(totalnodes /= 10){
+		nodecountlen++;
+	}
+	totalnodes = sc[0] + sc[1] + sc[2] + sc[3];
 	fprintf(stderr, "Heap swaps     : %u\n", hswaps);
-	fprintf(stderr, "Path      nodes: %llu\n", sc[0]);
-	fprintf(stderr, "Closed    nodes: %llu\n", sc[1]);
-	fprintf(stderr, "Open      nodes: %llu\n", sc[2]);
-	fprintf(stderr, "Unvisited nodes: %llu\n", sc[3]);
-	fprintf(stderr, "Total     nodes: %llu\n", sc[0] + sc[1] + sc[2] + sc[3]);
+	fprintf(stderr, "Path      nodes: %*llu (%8.4lf%%)\n", nodecountlen, sc[0], (double) sc[0] * 100 / totalnodes);
+	fprintf(stderr, "Closed    nodes: %*llu (%8.4lf%%)\n", nodecountlen, sc[1], (double) sc[1] * 100 / totalnodes);
+	fprintf(stderr, "Open      nodes: %*llu (%8.4lf%%)\n", nodecountlen, sc[2], (double) sc[2] * 100 / totalnodes);
+	fprintf(stderr, "Unvisited nodes: %*llu (%8.4lf%%)\n", nodecountlen, sc[3], (double) sc[3] * 100 / totalnodes);
+	fprintf(stderr, "Total     nodes: %*llu (%8.4lf%%)\n", nodecountlen, totalnodes, 100.0);
 }
 
 void print_graphic_solution(int sx, int sy, int ex, int ey){
@@ -655,7 +665,9 @@ void print_graphic_solution(int sx, int sy, int ex, int ey){
 	                   "╸ ", "┛ ", "━━", "┻━",
 	                   "┓ ", "┫ ", "┳━", "╋━"};
 	int i, j;
+	#ifdef FANCY_TERM
 	int cstate = 0;
+	#endif
 	for(i = 0; i < my; i++){
 		for(j = 0; j < mx; j++){
 			if(m[i][j].state & 4){
@@ -683,6 +695,8 @@ void print_graphic_solution(int sx, int sy, int ex, int ey){
 			}
 		}
 		printf("\n");
+		//fflush(stdout);
+		//usleep(50000);
 	}
 	#ifdef FANCY_TERM
 	if(isttyo){

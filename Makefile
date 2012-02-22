@@ -4,7 +4,7 @@ all : genmaze solvemaze
 
 
 genmaze : genmaze.c
-	gcc -ggdb -Wall          -o genmaze   genmaze.c
+	gcc -ggdb -Wall genmaze.c            -o genmaze
 
 solvemaze : solvemaze.c
 ifeq ($(UNAME), Linux)
