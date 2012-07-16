@@ -31,11 +31,12 @@
 #include <sys/ioctl.h>
 #endif
 
-#ifndef __MACH__
 #include <time.h>
 
+#if _POSIX_C_SOURCE >= 199309L && defined(CLOCK_REALTIME)
 #define CLOCK_ID CLOCK_REALTIME
-//#define CLOCK_ID CLOCK_PROCESS_CPUTIME_ID
+
+#define DO_TIMING
 
 struct timespec t_res;
 struct timespec t_diff;
@@ -76,7 +77,7 @@ typedef int h_t;
 
 //No Distance Heuristic:
 //#define dist(X1,Y1,X2,Y2) (0)
-//typedef double h_t;
+//typedef int h_t;
 
 
 typedef struct _node {
@@ -157,7 +158,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	fprintf(stderr, "Reading dimensions... ");
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_getres (CLOCK_ID, &t_res);
 	clock_gettime(CLOCK_ID, &t_start);
 	#endif
@@ -244,7 +245,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	fprintf(stderr, "Parsing...\n");
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_zero);
 	#endif
 	
@@ -253,7 +254,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	fprintf(stderr, "Initializing heap (%d nodes)...\n", HRI);
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_parse);
 	#endif
 	
@@ -269,14 +270,14 @@ int main(int argc, char *argv[]){
 	m[ey][ex].state = 1;
 	
 	fprintf(stderr, "Solving (%d, %d) -> (%d, %d)...\n", sx, sy, ex, ey);
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_initheap);
 	#endif
 	
 	int x, y, solved = 0;
 	node *n, *tn;
 	int d;
-	int nx, ny;
+	int nx = 0, ny = 0;
 	int tg;
 	int better;
 	int hcur;
@@ -426,7 +427,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_solve);
 	#endif
 	
@@ -468,7 +469,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_path);
 	
 	printdiff("get dimensions ", t_start     , t_dimensions);
@@ -495,7 +496,7 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
-#ifndef __MACH__
+#ifdef DO_TIMING
 void timespec_diff(struct timespec *s, struct timespec *e, struct timespec *o){
 	if((e->tv_nsec - s->tv_nsec) < 0){
 		o->tv_sec  =              e->tv_sec  - s->tv_sec - 1;
@@ -526,7 +527,7 @@ int alloc_maze(void){
 		                l, l,
 		                my, mx, sizeof(node), my, sizeof(node *));
 	}
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_dimensions);
 	#endif
 	
@@ -545,7 +546,7 @@ int alloc_maze(void){
 	}
 	
 	fprintf(stderr, "Zeroing out...\n");
-	#ifndef __MACH__
+	#ifdef DO_TIMING
 	clock_gettime(CLOCK_ID, &t_malloc);
 	#endif
 	
@@ -679,14 +680,18 @@ void print_graphic_solution(int sx, int sy, int ex, int ey){
 			if(m[i][j].state & 2){
 				#ifdef FANCY_TERM
 				if(isttyo && cstate != 2){ printf("%s", tcolors[2]); cstate = 2; }
-				#endif
+				printf("%s", (isttyo ? beprs : reprs)[(int) m[i][j].neighbors]);
+				#else
 				printf("%s", beprs[(int) m[i][j].neighbors]);
+				#endif
 			} else
 			if(m[i][j].state & 1){
 				#ifdef FANCY_TERM
 				if(isttyo && cstate != 3){ printf("%s", tcolors[3]); cstate = 3; }
-				#endif
+				printf("%s", (isttyo ? beprs : reprs)[(int) m[i][j].neighbors]);
+				#else
 				printf("%s", beprs[(int) m[i][j].neighbors]);
+				#endif
 			} else {
 				#ifdef FANCY_TERM
 				if(isttyo && cstate != 0){ printf("%s", tcolors[0]); cstate = 0; }
