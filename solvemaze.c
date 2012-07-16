@@ -89,8 +89,8 @@ typedef struct _node {
 	char parent;
 } node;
 
-unsigned int mx;
-unsigned int my;
+int mx;
+int my;
 
 int sx;
 int sy;
@@ -124,7 +124,7 @@ int  parse_maze(FILE *in);
 void print_maze(void);
 void calc_results(int sx, int sy, int ex, int ey);
 void print_solution(int sx, int sy, int ex, int ey, FILE *f);
-void print_graphic_solution(int sx, int sy, int ex, int ey);
+void print_graphic_solution(void);
 int  check_heapness(void);
 void print_help(void);
 
@@ -465,7 +465,7 @@ int main(int argc, char *argv[]){
 			fprintf(stderr, "The maze is too wide to be printed on your terminal.\n"
 			                "  I am therefore eliding the graphical representation.\n");
 		} else {
-			print_graphic_solution(sx, sy, ex, ey);
+			print_graphic_solution();
 		}
 	}
 	
@@ -655,7 +655,7 @@ void calc_results(int sx, int sy, int ex, int ey){
 	fprintf(stderr, "Total     nodes: %*llu (%8.4lf%%)\n", nodecountlen, totalnodes, 100.0);
 }
 
-void print_graphic_solution(int sx, int sy, int ex, int ey){
+void print_graphic_solution(void){
 	char *reprs[16] = {"  ", "╵ ", "╶─", "└─",
 	                   "╷ ", "│ ", "┌─", "├─",
 	                   "╴ ", "┘ ", "──", "┴─",
